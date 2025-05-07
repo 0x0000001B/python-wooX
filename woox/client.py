@@ -219,6 +219,9 @@ class Client(BaseClient):
 
     def get_orders(self, **params) -> Dict:
         return self._get("orders", True, **params)
+    
+    def get_one_position_info(self, symbol) -> Dict:
+        return self._get(f'position/{symbol}', True)
 
     def get_klines(self, **params) -> Dict:
         return self._get("kline", True, **params)
