@@ -76,7 +76,7 @@ class Client(BaseClient):
         api: Optional[str],
         secret: Optional[str],
         application_id: str,
-        testnet: bool,
+        testnet,
     ):
         super().__init__(
             api=api,
@@ -222,6 +222,9 @@ class Client(BaseClient):
     
     def get_one_position_info(self, symbol) -> Dict:
         return self._get(f'position/{symbol}', True)
+    
+    def get_subaccount_assets(self) -> Dict:
+        return self._get('sub_account/assets', True)
 
     def get_klines(self, **params) -> Dict:
         return self._get("kline", True, **params)
