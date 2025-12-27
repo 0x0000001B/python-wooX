@@ -76,7 +76,7 @@ class Client(BaseClient):
         api: Optional[str],
         secret: Optional[str],
         application_id: str,
-        testnet: bool,
+        testnet,
     ):
         super().__init__(
             api=api,
@@ -119,21 +119,20 @@ class Client(BaseClient):
     def _delete(self, ep, signed=False, v: str = "", **kwargs) -> Dict:
         return self._request_api("delete", ep, signed, v, **kwargs)
 
-    def _v3_request(
-        self, method: str, ep: str, uri: str, signed: bool, **kwargs
-    ):
+    def _v3_request(self, method: str, ep: str, uri: str, signed: bool, **kwargs):
         try:
-            sorted_arg = {key: value for key, value in sorted(kwargs.items())}
-            json_formatted_str = ""
-            if signed:
-                ts = round(datetime.datetime.now().timestamp() * 1000)
-                msg = str(ts) + f"{method.upper()}/v3/{ep}"
+            sorted_arg = dict(sorted(kwargs.items()))
+            ts = round(datetime.datetime.now().timestamp() * 1000)
 
-                if sorted_arg != {}:
-                    json_formatted_str = json.dumps(sorted_arg, indent=4)
-                    msg += json_formatted_str
+            query = "&".join(f"{k}={v}" for k, v in sorted_arg.items())
+
+            if signed:
+                msg = f"{ts}{method.upper()}/v3/{ep}"
+                if query:
+                    msg += f"?{query}"
 
                 sig = signature(msg, self.API_SECRET)
+
                 header = {
                     "Content-Type": "application/json",
                     "x-api-signature": sig,
@@ -142,18 +141,17 @@ class Client(BaseClient):
                 }
                 self.session.headers.update(header)
 
-            uri = (
-                uri + "?" + "&".join(f"{k}={v}" for k, v in sorted_arg.items())
-            )
-            self.response = getattr(self.session, method)(
-                uri, data=json_formatted_str
-            )
+            if query:
+                uri = f"{uri}?{query}"
 
+            self.response = getattr(self.session, method)(uri)
             return self._handle_response(self.response)
+
         except Exception as e:
-            log.error(f"[ERROR] Request failed!")
+            log.error("[ERROR] Request failed!")
             log.error(e)
             return self._handle_response(self.response)
+
 
     def _request(self, method, uri: str, signed: bool, **kwargs):
         try:
@@ -222,6 +220,9 @@ class Client(BaseClient):
     
     def get_one_position_info(self, symbol) -> Dict:
         return self._get(f'position/{symbol}', True)
+    
+    def get_subaccount_assets(self) -> Dict:
+        return self._get('sub_account/assets', True)
 
     def get_klines(self, **params) -> Dict:
         return self._get("kline", True, **params)
